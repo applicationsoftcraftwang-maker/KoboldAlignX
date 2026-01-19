@@ -1,0 +1,120 @@
+version: "3.8"
+
+services:
+
+  db:
+    container_name: postgresql_db
+    image: postgres
+    restart: always
+    ports:
+      - 5432:5432
+    env_file:
+      - src/core/.env
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password 
+    networks:
+      - service_net
+          
+  app:
+    container_name: app
+    build: .
+    command: [ gunicorn, -w=2, -k=uvicorn.workers.UvicornWorker, -b=:7000,
+               --worker-tmp-dir=/dev/shm, src.main:app ]
+    volumes:
+     - .:/app
+    ports:
+      - 8200:7000
+    depends_on:
+      - db
+    restart: always
+    networks:
+      - service_net
+      
+  redis:
+    build:
+      context: ./docker
+      dockerfile: ./Dockerfile.redis
+    restart: always
+    container_name: redis
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 30s
+      retries: 50
+    networks:
+      - service_net
+      
+  rabbitmq:
+    hostname: rabbit1
+    build:
+      context: ./docker
+      dockerfile: ./Dockerfile.rabbitmq
+    restart: always
+    container_name: rabbitmq
+    volumes:
+      - rabbitmq-log:/var/log/rabbitmq
+      - rabbitmq-data:/var/lib/rabbitmq
+    environment: 
+      RABBITMQ_DEFAULT_USER: "guest"
+      RABBITMQ_DEFAULT_PASS: "guest"
+      RABBITMQ_DEFAULT_VHOST: "/"
+      CELERY_BROKER_URL: "amqp://guest:guest@rabbitmq:5672"
+    env_file:
+      - src/core/.env
+    ports:
+      - 5672:5672
+      - 15672:15672
+    expose:
+      - "5672"
+    networks:
+      - service_net
+
+  celery_worker:
+    container_name: celery_worker
+    build: .
+    restart: always
+    command: celery -A src.core.job_tasks worker --loglevel=info 
+    volumes:
+      - .:/app
+    env_file:
+      - src/core/.env
+    environment:
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq/%2F
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0 
+    depends_on:
+      - app
+      - redis
+    networks:
+      - service_net
+  
+  celery_beat:
+    container_name: celery_beat
+    build: .
+    restart: always
+    command: celery -A src.core.job_tasks beat --loglevel=info
+    volumes:
+      - .:/app
+    env_file:
+      - src/core/.env
+    environment:
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq/%2F
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      - rabbitmq
+      - redis
+    networks:
+      - service_net
+
+volumes:
+  redis-data:
+  rabbitmq-log:
+  rabbitmq-data:
+    
+networks:
+  service_net:
+    driver: bridge

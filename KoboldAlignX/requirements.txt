@@ -1,0 +1,59 @@
+# KoboldAlignX Python Dependencies
+# Production dependencies for the refactored application
+
+# Web Framework
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+gunicorn==23.0.0
+python-multipart==0.0.19
+
+# Data Validation & Settings
+pydantic==2.10.3
+pydantic-settings==2.6.1
+
+# Async HTTP Client
+aiohttp==3.11.10
+httpx==0.28.1
+
+# Task Queue
+celery==5.4.0
+redis==5.2.1
+kombu==5.4.2
+
+# Database
+sqlalchemy==2.0.36
+alembic==1.14.0
+psycopg2-binary==2.9.10
+asyncpg==0.30.0
+
+# Data Processing
+pandas==2.2.3
+numpy==2.2.1
+openpyxl==3.1.5
+
+# Email
+# Using standard library (smtplib) - no additional dependencies needed
+
+# Retry Logic
+tenacity==9.0.0
+
+# Environment Variables
+python-dotenv==1.0.1
+
+# Utilities
+python-dateutil==2.9.0.post0
+pytz==2024.2
+
+# Security
+cryptography==44.0.0
+bcrypt==4.2.1
+pyjwt==2.10.1
+
+# Development Dependencies (install with pip install -r requirements-dev.txt)
+# black==24.10.0
+# mypy==1.13.0
+# pytest==8.3.4
+# pytest-asyncio==0.24.0
+# pytest-cov==6.0.0
+# ruff==0.8.4
+# pre-commit==4.0.1
